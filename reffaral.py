@@ -23,6 +23,12 @@ def load_data(file, sheet_name):
 # Function to add a grand total row to a DataFrame
 def add_grand_total(df):
     total_row = df.sum(numeric_only=True, skipna=True)
+    if 'CDR Percent' in df.columns:
+        total_row['CDR Percent'] = df['CDR Percent'].mean()
+    if 'Discount Percent' in df.columns:
+        total_row['Discount Percent'] = df['Discount Percent'].mean()
+    if 'Ref Percent' in df.columns:
+        total_row['Ref Percent'] = df['Ref Percent'].mean()
     #total_row['Mkt Code'] = 'Grand Total'
     df_with_total = pd.concat([df, pd.DataFrame([total_row])], ignore_index=True)
     return df_with_total, total_row
@@ -161,6 +167,7 @@ if uploaded_file:
                             # Add grand total rows
                             b2_df_with_total, b2_total_row = add_grand_total(b2_df)
                             other_df_with_total, other_total_row = add_grand_total(other_df)
+                        
 
                             # Combine both DataFrames, inserting blank rows and a header for the second part
                             combined_df = pd.concat([b2_df_with_total, pd.DataFrame(columns=mkt_code_df.columns, index=range(3)), other_df_with_total], ignore_index=True)
@@ -171,6 +178,9 @@ if uploaded_file:
                             # Get the workbook and worksheet objects
                             workbook  = writer.book
                             worksheet = writer.sheets[sheet_name]
+
+                            worksheet.write(len(b2_df_with_total), 4, 'Total')
+                            worksheet.write(len(combined_df), 4, 'Total')
 
                             # Define the format for the second header
                             header_format = workbook.add_format({
