@@ -29,7 +29,6 @@ def add_grand_total(df):
         total_row['Discount Percent'] = df['Discount Percent'].mean()
     if 'Ref Percent' in df.columns:
         total_row['Ref Percent'] = df['Ref Percent'].mean()
-    #total_row['Mkt Code'] = 'Grand Total'
     df_with_total = pd.concat([df, pd.DataFrame([total_row])], ignore_index=True)
     return df_with_total, total_row
 
@@ -52,7 +51,6 @@ if uploaded_file:
         
         if st.button("Process Data"):
             try:
-
                 # Initialize the 'Ref Amount' column with empty strings
                 main_sheet['Ref Amount'] = ''
 
@@ -62,7 +60,6 @@ if uploaded_file:
                 total_sale_col = 'Total Sale'
                 invoice_no_col = 'Invoice No'
                 invoice_id_col = 'Invoice Id'
-
 
                 # Check if columns exist
                 if test_name_col not in main_sheet.columns or department_col not in main_sheet.columns or total_sale_col not in main_sheet.columns or invoice_no_col not in main_sheet.columns or invoice_id_col not in doctor_wise_sheet.columns:
@@ -151,6 +148,9 @@ if uploaded_file:
                         pivot_table.to_excel(writer, sheet_name='Pivot Data')
                         doctor_wise_sheet.to_excel(writer, sheet_name=doctor_wise_name, index=False)
 
+                        # Initialize a DataFrame for "Top Sheet" grand totals
+                        top_sheet_data = pd.DataFrame(columns=doctor_wise_sheet.columns)
+
                         # Write the "Doctor Wise" sheet separated by "Mkt Code"
                         for mkt_code in doctor_wise_sheet['Mkt Code'].unique():
                             if pd.isna(mkt_code):
@@ -167,7 +167,6 @@ if uploaded_file:
                             # Add grand total rows
                             b2_df_with_total, b2_total_row = add_grand_total(b2_df)
                             other_df_with_total, other_total_row = add_grand_total(other_df)
-                        
 
                             # Combine both DataFrames, inserting blank rows and a header for the second part
                             combined_df = pd.concat([b2_df_with_total, pd.DataFrame(columns=mkt_code_df.columns, index=range(3)), other_df_with_total], ignore_index=True)
@@ -187,7 +186,6 @@ if uploaded_file:
                                 'bold': True,
                                 'text_wrap': True,
                                 'valign': 'top',
-                                #'fg_color': '#D7E4BC',
                                 'border': 1})
 
                             # Write the header for the second part
@@ -199,6 +197,16 @@ if uploaded_file:
                             for col_num, value in enumerate(overall_total):
                                 worksheet.write(len(combined_df) + 2, col_num + 5, value)
                             
+                            # Add overall total to the "Top Sheet" data
+                            overall_total['Mkt Code'] = mkt_code if not pd.isna(mkt_code) else 'Walking Patient'
+                            # Add the invoice count
+                            overall_total['INVOICES ACHIEVEMENT'] = len(mkt_code_df[invoice_id_col].unique())
+                            top_sheet_data = pd.concat([top_sheet_data, pd.DataFrame([overall_total])], ignore_index=True)
+
+                        # Remove the first 4 columns from "Top Sheet"
+                        top_sheet_data = top_sheet_data.iloc[:, 4:]
+                        # Write the "Top Sheet" with the Mkt Code wise grand total row data
+                        top_sheet_data.to_excel(writer, sheet_name='Top Sheet', index=False)
 
                     output.seek(0)
 
